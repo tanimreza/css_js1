@@ -1,0 +1,218 @@
+function generate_otp(filerfno_var, passport_no_var) {
+            $('#error_msg').html('');
+            var value1_var = document.getElementsByClassName("app_field")[0].value;
+            var value2_var = document.getElementsByClassName("app_field")[1].value;
+
+            if (document.getElementById('generate_otp').checked == true)
+                var otp_required_var = "generate_otp";
+            else if (document.getElementById('have_otp').checked == true)
+                var otp_required_var = "have_otp";
+            else if (document.getElementById('send_alotment_sms').checked == true)
+                var otp_required_var = "send_alotment_sms";
+
+            var otp_var = document.getElementById("otp").value;
+            var captcha_var = document.getElementById("captcha").value;
+
+            //http://localhost:8084/struts_bgd/json/GenerateOtp?filerfno=BGDDV0004116&passport_no=PASS123&value1=TEST&value2=TEST
+
+            $.ajax({
+                type: "POST",
+                url: "json/GenerateOtp",
+                dataType: "json",
+                data: {filerfno: filerfno_var, passport_number: passport_no_var, value1: value1_var, value2: value2_var, otp_required: otp_required_var, otp: otp_var, captcha: captcha_var},
+                success: function (data) {
+                    //alert(data['sms_output']);                    
+                    alert(data);
+                    $('#generate_otp_msg').text(data);
+                    refreshCaptcha();
+                    $('#captcha').val('');
+                    $('#have_otp').prop('checked', false);
+                    $('#generate_otp').prop('checked', false);
+                    $('#send_alotment_sms').prop('checked', false);
+
+                }
+            })
+                    .done(function (data) {
+
+                    })
+                    .fail(function () {
+                        alert("Some problem occurred");
+                    })
+                    .always(function () {
+                    });
+        }
+
+
+
+        var refreshIntervalId;
+        function startTimer(duration, display) {
+            var timer = duration, minutes, seconds;
+            refreshIntervalId = setInterval(function () {
+                minutes = parseInt(timer / 60, 10)
+                seconds = parseInt(timer % 60, 10);
+                minutes = minutes < 10 ? minutes : minutes;
+                seconds = seconds < 10 ? seconds : seconds;
+                // display.text(minutes + ":" + seconds);
+                display.text(seconds);
+                //$('#timer_msg').html('You can submit request after ' + seconds + ' seconds');
+                if (--timer < 0) {
+                    $('#timer_msg').html('<input name="submit_btn" id="btn1" type="submit" class="btn btn-primary"  value="Submit">');
+                    return;
+                }
+            });
+        }
+
+        function otpmgt() {
+            var otp_check = null;
+            $('#error_msg').html('');
+            if (document.getElementById('have_otp').checked == true)
+            {
+                otp_check = document.getElementById('have_otp').value;
+                $('.cotp').css('display', '');
+                $('#otp').prop('disabled', false);
+                //call timer function
+                $('#timer_msg').html('');
+                startTimer(45, $('#btn_time'));       
+                document.getElementById("otp").disabled = false;
+            }
+            else if (document.getElementById('generate_otp').checked == true)
+            {   //submit request through ajax
+                clearInterval(refreshIntervalId);
+                alert("OTP will be sent to your registered mobile number.");
+                otp_check = document.getElementById('generate_otp').value;
+                $('.cotp').css('display', 'none');
+                $('#otp').val('');
+                $('#otp').prop('disabled', true);
+                $('.cappt_mobile').css('display', '');
+                $('#btn1').val('Generate OTP');
+
+                document.getElementById("otp").disabled = true;
+                //display submit button now            
+                $('#timer_msg').html('<input name="submit_btn" id="btn1" type="submit" class="btn btn-primary"  value="Generate OTP" >');
+
+            } else if (document.getElementById('send_alotment_sms').checked == true)
+            {
+                clearInterval(refreshIntervalId);
+                otp_check = document.getElementById('send_alotment_sms').value;
+                $('.cotp').css('display', 'none');
+                $('#otp').val('');
+                $('#otp').prop('disabled', true);
+                $('.cappt_mobile').css('display', 'none');
+                document.getElementById("otp").disabled = true;
+                $('#timer_msg').html('<input name="submit_btn" id="btn1" type="submit" class="btn btn-primary"  value="Send Allotment SMS" >');
+            }
+
+        }
+
+        function validate_appointmentLogin_form() {
+            var f1 = document.getElementsByClassName('app_field')[0].value;
+            var f2 = document.getElementsByClassName('app_field')[1].value;
+
+            var otp_value = document.getElementById("otp").value;
+            var otp_length = otp_value.length;
+            var otp_required_val = "";
+            var otp_required_check = ($('input[type=radio]:checked').size() > 0);// false    
+            var submit = true;
+            var result = "";
+
+            if (document.getElementById('application_id') != undefined) {
+                result = validate_filenumber($('#application_id').val(), 1);
+                if (result != "true")
+                {
+                    errorify($('#application_id'), result);
+                    submit = false;
+                }
+                else
+                {
+                    correctify($('#application_id'), "Please enter application id");
+                }
+            }
+            if (document.getElementById('passport_no') != undefined) {
+                result = validate_passportNo($('#passport_no').val(), 1);
+                if (result != "true")
+                {
+                    errorify($('#passport_no'), result);
+                    submit = false;
+                }
+                else
+                {
+                    correctify($('#passport_no'), "");
+                }
+            }
+            //if(f1 == null || f1.value == "" || isEmpty(f1)||f1.length==0)
+            if (f1 == "" || f1.length == 0)
+            {
+                result = validate_passportNo(f1, 1);
+                errorify($(document.getElementsByClassName('app_field')[0]), "Please enter all mandatory details");
+                submit = false;
+            } else
+            {
+                correctify($(document.getElementsByClassName('app_field')[0]), "");
+            }
+            if (f2 == "" || f2.length == 0)
+            {
+                //alert("Please Enter All mandtory fields"+document.getElementsByClassName('app_field')[1]);
+                errorify($(document.getElementsByClassName('app_field')[1]), "Please enter all mandatory details");
+                submit = false;
+            }
+            else 
+            {
+                correctify($(document.getElementsByClassName('app_field')[1]), "");
+            }
+            if (otp_required_check)
+            {
+                correctify($('#have_otp'), "");
+                if (document.getElementById('have_otp').checked == true && otp_value.length == 0) {
+                    errorify($('#otp'), "Please enter otp");
+                    submit = false;
+                    //  alert("Have OTP and Length= 0. Submit = " + submit);
+                }
+                else
+                {
+                    correctify($('#otp'), "");
+                }
+                if (document.getElementById('have_otp').checked == true && otp_value.length < 6) {
+                    errorify($('#otp'), "Please enter correct otp");
+                    submit = false;
+                    // alert("Have OTP and Length< 6. Submit = " + submit);
+                }
+                else 
+                {
+                    correctify($('#otp'), "");
+                }          
+        
+       
+            }
+            else
+            {
+                errorify($('#have_otp'), "Please select at least one option.");
+                submit = false;
+            }
+            if (document.getElementById('captcha') != undefined) {
+                result = validate_captcha($('#captcha').val(), 1);
+
+                if (result != "true")
+                {
+                    errorify($('#captcha'), result);
+                    submit = false;
+                }
+                else
+                {
+                    correctify_lowercase($('#captcha'), "");
+                }
+            }
+
+            //if generate otp is clicked then submit function by ajax else submit to action    
+            if (document.getElementById('generate_otp').checked == true && submit == true) {
+                //call ajax function to generate otp    
+                //disable submit button here
+
+
+                generate_otp($('#application_id').val(), $('#passport_no').val());
+
+                submit = false;
+            }
+
+
+            return submit;
+        }
